@@ -20,7 +20,8 @@ RUN apt -y install \
   libapache2-mod-php \ 
   php-xdebug \
   sudo \ 
-  gpac
+  gpac \
+  vim
 RUN update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 
 # let apache sudo this one specific script which filters the access logs
@@ -32,4 +33,5 @@ COPY --chown=www-data:www-data . /var/www/html/
 RUN cd /var/www/html/ISOSegmentValidator/public/linux && make clean && make -j
 
 
-CMD apachectl -D FOREGROUND
+# CMD apachectl -D FOREGROUND
+CMD ["apachectl", "-D", "FOREGROUND"] 

@@ -87,6 +87,7 @@ function handleLiveMpdChecks()
     while ($now < $nextUpdate) {
         sleep(1);
         $now = new DateTimeImmutable();
+        break;
     }
 
     $nextMpd = new DASHIF\MPDHandler($mpd_url);
