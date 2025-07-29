@@ -125,6 +125,23 @@ class MPDHandler
         include 'impl/MPDHandler/downloadAll.php';
     }
 
+    public function downloadLimited($maxSegments = 2, $assemble = true)
+    {
+        global $limit;
+        $limit = $maxSegments;
+        include 'impl/MPDHandler/downloadAll.php';
+    }
+
+    public function getAvailableSegmentCount($adaptationSet, $representation)
+    {
+        if (isset($this->segmentUrls[$this->selectedPeriod][$adaptationSet][$representation]['segments'])) {
+            $totalSegments = count($this->segmentUrls[$this->selectedPeriod][$adaptationSet][$representation]['segments']);
+            global $limit;
+            return $limit ? min($limit, $totalSegments) : $totalSegments;
+        }
+        return 0;
+    }
+
     private function assembleSingle($source, $assembly, $sizeFile, $index)
     {
         include 'impl/MPDHandler/assembleSingle.php';

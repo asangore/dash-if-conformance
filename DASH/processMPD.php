@@ -14,7 +14,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-function process_MPD($parseSegments = false, $autoDetect = false, $detailedSegmentOutput = true)
+function process_MPD($parseSegments = false, $autoDetect = false, $detailedSegmentOutput = true, $maxSegmentsPerTrack = 2)
 {
     global $mpd_url,$session, $modules, $logger, $mpdHandler;
 
@@ -26,6 +26,7 @@ function process_MPD($parseSegments = false, $autoDetect = false, $detailedSegme
     ## If only MPD validation is requested or inferred, stop
     ## If any error is found in the MPD validation process, stop
     ## If no error is found, then proceed with segment validation below
+    ## MODIFICATION: Added $maxSegmentsPerTrack parameter to limit segment downloads
     $mpdHandler = new DASHIF\MPDHandler($mpd_url);
 
     if ($mpdHandler->getDOM() == null) {
@@ -63,8 +64,8 @@ function process_MPD($parseSegments = false, $autoDetect = false, $detailedSegme
 
 
     if ($parseSegments) {
-        fwrite(STDERR, "Parsing segments\n");
-        parseSegments($detailedSegmentOutput);
+        fwrite(STDERR, "Parsing segments (limited to $maxSegmentsPerTrack segments per track)\n");
+        parseSegments($detailedSegmentOutput, $maxSegmentsPerTrack);
     } else {
         fwrite(STDERR, "Not parsing segments\n");
     }
@@ -100,7 +101,7 @@ function handleLiveMpdChecks()
     }
 }
 
-function parseSegments($detailedSegmentOutput = true)
+function parseSegments($detailedSegmentOutput = true, $maxSegmentsPerTrack = 2)
 {
     global $mpdHandler, $logger, $modules;
 
@@ -113,7 +114,8 @@ function parseSegments($detailedSegmentOutput = true)
         $mpdHandler->selectPeriod(0);
     }
 
-    $mpdHandler->downloadAll();
+    // Download only a limited number of segments per track instead of all
+    $mpdHandler->downloadLimited($maxSegmentsPerTrack);
 
     while ($mpdHandler->getSelectedPeriod() < sizeof($mpdHandler->getFeatures()['Period'])) {
         processAdaptationSetOfCurrentPeriod($detailedSegmentOutput);
@@ -172,6 +174,14 @@ function processAdaptationSetOfCurrentPeriod($detailedSegmentOutput = true)
 
             $representationDirectory = $session->getSelectedRepresentationDir();
 
+            // Get the number of segments available for this representation
+            $availableSegments = $mpdHandler->getAvailableSegmentCount(
+                $mpdHandler->getSelectedAdaptationSet(),
+                $mpdHandler->getSelectedRepresentation()
+            );
+            
+            fwrite(STDERR, "Processing " . $availableSegments . " segments for representation " . 
+                   $mpdHandler->getSelectedRepresentation() . "\n");
 
             $additional_flags = '';
             foreach ($modules as $module) {
