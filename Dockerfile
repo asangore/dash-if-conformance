@@ -28,7 +28,7 @@ RUN update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/jav
 RUN echo >> /etc/sudoers "www-data ALL=NOPASSWD: /var/www/html/Conformance-Frontend/src/get-access.sh"
 
 # create credentials file and set permissions
-RUN touch /creds.key && chmod 666 /creds.key
+RUN touch /creds.key && chmod 600 /creds.key
 
 RUN rm /var/www/html/index.html
 COPY --chown=www-data:www-data . /var/www/html/

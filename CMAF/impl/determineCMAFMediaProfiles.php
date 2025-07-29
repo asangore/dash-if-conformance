@@ -2,12 +2,38 @@
 
 global $logger, $mpdHandler;
 
-$compatibleBrands = $xml->getElementsByTagName("ftyp")->item(0)->getAttribute("compatibleBrands");
-$hdlrType = $xml->getElementsByTagName("hdlr")->item(0)->getAttribute("handler_type");
+// Add null checks to prevent crashes when elements don't exist
+$ftypElement = $xml->getElementsByTagName("ftyp")->item(0);
+$hdlrElement = $xml->getElementsByTagName("hdlr")->item(0);
+
+// Debug information
+if (!$ftypElement) {
+    fwrite(STDERR, "Warning: No 'ftyp' element found in XML. Available elements: ");
+    $allElements = $xml->getElementsByTagName("*");
+    $elementNames = array();
+    for ($i = 0; $i < min(10, $allElements->length); $i++) {
+        $elementNames[] = $allElements->item($i)->nodeName;
+    }
+    fwrite(STDERR, implode(", ", array_unique($elementNames)) . "\n");
+}
+
+if (!$hdlrElement) {
+    fwrite(STDERR, "Warning: No 'hdlr' element found in XML\n");
+}
+
+$compatibleBrands = $ftypElement ? $ftypElement->getAttribute("compatibleBrands") : "";
+$hdlrType = $hdlrElement ? $hdlrElement->getAttribute("handler_type") : "";
 
 if ($hdlrType == 'vide') {
     $mediaProfileParameters = $this->CMAFMediaProfileAttributesVideo;
     $videoSampleDescription = $xml->getElementsByTagName("vide_sampledescription")->item(0);
+    
+    // Add null check for video sample description
+    if (!$videoSampleDescription) {
+        fwrite(STDERR, "Warning: No video sample description found in XML\n");
+        return array("", array());
+    }
+    
     $sdType = $videoSampleDescription->getAttribute("sdType");
 
     if ($sdType == 'avc1' || $sdType == 'avc3') {
@@ -26,6 +52,17 @@ if ($hdlrType == 'vide') {
             ///\Resiliency Add checks for existing spsUnit
             $avcC = $videoSampleDescription->getElementsByTagName('avcC')->item(0);
             $comment = $nalUnits->item($spsUnitIndex)->getElementsByTagName("comment")->item(0);
+            
+            // Add null checks to prevent crashes
+            if (!$avcC) {
+                fwrite(STDERR, "Warning: No avcC element found\n");
+                return array("", array());
+            }
+            if (!$comment) {
+                fwrite(STDERR, "Warning: No comment element found in NAL unit\n");
+                return array("", array());
+            }
+            
             $mediaProfileParameters['profile'] = hexdec($avcC->getAttribute("profile"));
             $mediaProfileParameters['level'] = (float)($comment->getAttribute("level_idc")) / 10;
             $mediaProfileParameters['width'] = $videoSampleDescription->getAttribute("width");

@@ -129,7 +129,7 @@ class MPDHandler
     {
         global $limit;
         $limit = $maxSegments;
-        include 'impl/MPDHandler/downloadAll.php';
+        include 'impl/MPDHandler/downloadLimited.php';
     }
 
     public function getAvailableSegmentCount($adaptationSet, $representation)
@@ -137,7 +137,11 @@ class MPDHandler
         if (isset($this->segmentUrls[$this->selectedPeriod][$adaptationSet][$representation]['segments'])) {
             $totalSegments = count($this->segmentUrls[$this->selectedPeriod][$adaptationSet][$representation]['segments']);
             global $limit;
-            return $limit ? min($limit, $totalSegments) : $totalSegments;
+            $mediaSegments = $limit ? min($limit, $totalSegments) : $totalSegments;
+            
+            // Add 1 for init segment if it exists
+            $hasInit = isset($this->segmentUrls[$this->selectedPeriod][$adaptationSet][$representation]['init']);
+            return $mediaSegments + ($hasInit ? 1 : 0);
         }
         return 0;
     }
